@@ -310,11 +310,11 @@ class ZLClipImageViewController: UIViewController {
         self.bottomToolView.layer.addSublayer(self.bottomShadowLayer)
         
         self.bottomToolLineView = UIView()
-        self.bottomToolLineView.backgroundColor = zlRGB(240, 240, 240)
+        self.bottomToolLineView.backgroundColor = zlRGB(69, 75, 65)
         self.bottomToolView.addSubview(self.bottomToolLineView)
         
         self.cancelBtn = UIButton(type: .custom)
-        self.cancelBtn.setImage(getImage("zl_close"), for: .normal)
+        self.cancelBtn.setImage(getImage("rr_close"), for: .normal)
         self.cancelBtn.adjustsImageWhenHighlighted = false
         self.cancelBtn.zl_enlargeValidTouchArea(inset: 20)
         self.cancelBtn.addTarget(self, action: #selector(cancelBtnClick), for: .touchUpInside)
@@ -324,12 +324,12 @@ class ZLClipImageViewController: UIViewController {
         self.revertBtn.setTitleColor(.white, for: .normal)
         self.revertBtn.setTitle(localLanguageTextValue(.revert), for: .normal)
         self.revertBtn.zl_enlargeValidTouchArea(inset: 20)
-        self.revertBtn.titleLabel?.font = ZLImageEditorLayout.bottomToolTitleFont
+        self.revertBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         self.revertBtn.addTarget(self, action: #selector(revertBtnClick), for: .touchUpInside)
         self.bottomToolView.addSubview(self.revertBtn)
         
         self.doneBtn = UIButton(type: .custom)
-        self.doneBtn.setImage(getImage("zl_right"), for: .normal)
+        self.doneBtn.setImage(getImage("rr_done"), for: .normal)
         self.doneBtn.adjustsImageWhenHighlighted = false
         self.doneBtn.zl_enlargeValidTouchArea(inset: 20)
         self.doneBtn.addTarget(self, action: #selector(doneBtnClick), for: .touchUpInside)

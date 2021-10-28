@@ -273,7 +273,6 @@ public class ZLEditImageViewController: UIViewController {
         
         self.topShadowView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 150)
         self.topShadowLayer.frame = self.topShadowView.bounds
-        self.cancelBtn.frame = CGRect(x: 30, y: insets.top+10, width: 28, height: 28)
         
         self.bottomShadowView.frame = CGRect(x: 0, y: self.view.frame.height-140-insets.bottom, width: self.view.frame.width, height: 140+insets.bottom)
         self.bottomShadowLayer.frame = self.bottomShadowView.bounds
@@ -281,13 +280,12 @@ public class ZLEditImageViewController: UIViewController {
         self.drawColorCollectionView.frame = CGRect(x: 20, y: 20, width: self.view.frame.width - 80, height: 50)
         self.revokeBtn.frame = CGRect(x: self.view.frame.width - 15 - 35, y: 30, width: 35, height: 30)
         
-        self.filterCollectionView.frame = CGRect(x: 20, y: 0, width: self.view.frame.width-40, height: ZLEditImageViewController.filterColViewH)
+        self.filterCollectionView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: ZLEditImageViewController.filterColViewH)
         
         let toolY: CGFloat = 85
         
         let doneBtnH = ZLImageEditorLayout.bottomToolBtnH
         let doneBtnW = localLanguageTextValue(.editFinish).boundingRect(font: ZLImageEditorLayout.bottomToolTitleFont, limitSize: CGSize(width: CGFloat.greatestFiniteMagnitude, height: doneBtnH)).width + 20
-        self.doneBtn.frame = CGRect(x: self.view.frame.width-20-doneBtnW, y: toolY-2, width: doneBtnW, height: doneBtnH)
         
         self.editToolCollectionView.frame = CGRect(x: 20, y: toolY, width: self.view.bounds.width - 20 - 20 - doneBtnW - 20, height: 30)
         
@@ -403,11 +401,18 @@ public class ZLEditImageViewController: UIViewController {
         self.topShadowView.layer.addSublayer(self.topShadowLayer)
         
         self.cancelBtn = UIButton(type: .custom)
-        self.cancelBtn.setImage(getImage("zl_retake"), for: .normal)
+        self.cancelBtn.setTitle(localLanguageTextValue(.cancel), for: .normal)
         self.cancelBtn.addTarget(self, action: #selector(cancelBtnClick), for: .touchUpInside)
         self.cancelBtn.adjustsImageWhenHighlighted = false
         self.cancelBtn.zl_enlargeValidTouchArea(inset: 30)
+        self.cancelBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         self.topShadowView.addSubview(self.cancelBtn)
+        
+        cancelBtn.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            cancelBtn.leadingAnchor.constraint(equalTo: topShadowView.leadingAnchor, constant: 20),
+            cancelBtn.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+        ])
         
         self.bottomShadowView = UIView()
         self.view.addSubview(self.bottomShadowView)
@@ -416,6 +421,54 @@ public class ZLEditImageViewController: UIViewController {
         self.bottomShadowLayer.colors = [color2, color1]
         self.bottomShadowLayer.locations = [0, 1]
         self.bottomShadowView.layer.addSublayer(self.bottomShadowLayer)
+        
+        let toolStackView = UIStackView()
+        toolStackView.axis = .horizontal
+        toolStackView.alignment = .fill
+        toolStackView.distribution = .fillProportionally
+        toolStackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        bottomShadowView.addSubview(toolStackView)
+        NSLayoutConstraint.activate([
+            toolStackView.leadingAnchor.constraint(equalTo: bottomShadowView.leadingAnchor, constant: 20),
+            toolStackView.trailingAnchor.constraint(equalTo: bottomShadowView.trailingAnchor, constant: -20),
+            toolStackView.heightAnchor.constraint(equalToConstant: 50),
+            toolStackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+        ])
+        
+        let createButton = { (title: String, image: UIImage?, action: Selector) -> UIButton in
+            let button = UIButton(type: .system)
+            button.setImage(image, for: .normal)
+            button.setTitle(title, for: .normal)
+            button.setTitleColor(.white, for: .normal)
+            button.tintColor = .white
+            button.titleLabel?.font = .systemFont(ofSize: 10, weight: .medium)
+            button.titleEdgeInsets = .init(top: 0, left: 4, bottom: 0, right: -4)
+            
+            if let font = button.titleLabel?.font, let imageSize = image?.size {
+                let titleSize = title.size(withAttributes: [.font: font])
+                let imageWidth = imageSize.width
+                let titleWidth = titleSize.width
+                let imageHeight = imageSize.height
+                let titleHeight = titleSize.height
+                let halfSpacing: CGFloat = 2
+                let factor: CGFloat = button.effectiveUserInterfaceLayoutDirection == .rightToLeft ? -1 : 1
+
+                button.imageEdgeInsets = UIEdgeInsets(top: -(titleHeight * 0.5 + halfSpacing), left: titleWidth * 0.5 * factor, bottom: titleHeight * 0.5 + halfSpacing, right: -(titleWidth * 0.5) * factor)
+                button.titleEdgeInsets = UIEdgeInsets(top: imageHeight * 0.5 + halfSpacing, left: -(imageWidth * 0.5) * factor, bottom: -(imageHeight * 0.5 + halfSpacing), right: imageWidth * 0.5 * factor)
+                
+                let padding = min(imageWidth, titleWidth) * 0.5
+                let margin = min(imageHeight, titleHeight) * 0.5
+                button.contentEdgeInsets = UIEdgeInsets(top: margin + halfSpacing, left: -padding, bottom: margin + halfSpacing, right: -padding)
+            }
+            
+            button.addTarget(self, action: action, for: .touchUpInside)
+
+            return button
+        }
+        toolStackView.addArrangedSubview(createButton(NSLocalizedString("Filters", comment: ""), getImage("rr_tool_filter"), #selector(self.filterBtnClick)))
+        toolStackView.addArrangedSubview(createButton(NSLocalizedString("Stickers", comment: ""), getImage("rr_tool_sticker"), #selector(self.imageStickerBtnClick)))
+        toolStackView.addArrangedSubview(createButton(NSLocalizedString("Adjust", comment: ""), getImage("rr_tool_clip"), #selector(self.clipBtnClick)))
         
         let editToolLayout = UICollectionViewFlowLayout()
         editToolLayout.itemSize = CGSize(width: 30, height: 30)
@@ -429,16 +482,23 @@ public class ZLEditImageViewController: UIViewController {
         self.editToolCollectionView.showsHorizontalScrollIndicator = false
         self.bottomShadowView.addSubview(self.editToolCollectionView)
         
+        editToolCollectionView.isHidden = true
+        
         ZLEditToolCell.zl_register(self.editToolCollectionView)
         
         self.doneBtn = UIButton(type: .custom)
-        self.doneBtn.titleLabel?.font = ZLImageEditorLayout.bottomToolTitleFont
-        self.doneBtn.backgroundColor = ZLImageEditorConfiguration.default().editDoneBtnBgColor
+        self.doneBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         self.doneBtn.setTitle(localLanguageTextValue(.editFinish), for: .normal)
         self.doneBtn.addTarget(self, action: #selector(doneBtnClick), for: .touchUpInside)
         self.doneBtn.layer.masksToBounds = true
         self.doneBtn.layer.cornerRadius = ZLImageEditorLayout.bottomToolBtnCornerRadius
-        self.bottomShadowView.addSubview(self.doneBtn)
+        self.topShadowView.addSubview(self.doneBtn)
+        
+        doneBtn.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            doneBtn.trailingAnchor.constraint(equalTo: topShadowView.trailingAnchor, constant: -20),
+            doneBtn.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+        ])
         
         let drawColorLayout = UICollectionViewFlowLayout()
         drawColorLayout.itemSize = CGSize(width: 30, height: 30)
@@ -458,8 +518,8 @@ public class ZLEditImageViewController: UIViewController {
         
         let filterLayout = UICollectionViewFlowLayout()
         filterLayout.itemSize = CGSize(width: ZLEditImageViewController.filterColViewH-20, height: ZLEditImageViewController.filterColViewH)
-        filterLayout.minimumLineSpacing = 15
-        filterLayout.minimumInteritemSpacing = 15
+        filterLayout.minimumLineSpacing = 8
+        filterLayout.minimumInteritemSpacing = 8
         filterLayout.scrollDirection = .horizontal
         self.filterCollectionView = UICollectionView(frame: .zero, collectionViewLayout: filterLayout)
         self.filterCollectionView.backgroundColor = .clear
@@ -584,7 +644,10 @@ public class ZLEditImageViewController: UIViewController {
         self.filterCollectionView.isHidden = true
     }
     
-    func clipBtnClick() {
+    @objc func clipBtnClick() {
+        filterCollectionView.isHidden = true
+        selectedTool = nil
+
         let currentEditImage = self.buildImage()
         
         let vc = ZLClipImageViewController(image: currentEditImage, editRect: self.editRect, angle: self.angle, selectRatio: self.selectRatio)
@@ -618,7 +681,10 @@ public class ZLEditImageViewController: UIViewController {
         }
     }
     
-    func imageStickerBtnClick() {
+    @objc func imageStickerBtnClick() {
+        filterCollectionView.isHidden = true
+        selectedTool = nil
+
         ZLImageEditorConfiguration.default().imageStickerContainerView?.show(in: self.view)
         self.setToolView(show: false)
         self.imageStickerContainerIsHidden = false
@@ -644,7 +710,7 @@ public class ZLEditImageViewController: UIViewController {
         self.revokeBtn.isEnabled = self.mosaicPaths.count > 0
     }
     
-    func filterBtnClick() {
+    @objc func filterBtnClick() {
         let isSelected = self.selectedTool != .filter
         if isSelected {
             self.selectedTool = .filter

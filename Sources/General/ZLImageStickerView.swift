@@ -58,9 +58,9 @@ protocol ZLStickerViewAdditional: NSObject {
 
 class ZLImageStickerView: UIView, ZLStickerViewAdditional {
 
-    static let edgeInset: CGFloat = 20
+    static let edgeInset: CGFloat = 11
     
-    static let borderWidth = 1 / UIScreen.main.scale
+    static let borderWidth: CGFloat = 1
     
     weak var delegate: ZLStickerViewDelegate?
     
@@ -103,6 +103,11 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         return ZLImageStickerState(image: self.image, originScale: self.originScale, originAngle: self.originAngle, originFrame: self.originFrame, gesScale: self.gesScale, gesRotation: self.gesRotation, totalTranslationPoint: self.totalTranslationPoint)
     }
     
+    private let borderView = UIView()
+    private let removeButton = UIButton(type: .custom)
+    private let transformToolView = UIImageView()
+    private let buttonSize = CGSize(width: 22, height: 22)
+    
     deinit {
         self.cleanTimer()
     }
@@ -123,7 +128,6 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         self.gesRotation = gesRotation
         self.totalTranslationPoint = totalTranslationPoint
         
-        self.layer.borderWidth = ZLTextStickerView.borderWidth
         self.hideBorder()
         if showBorder {
             self.startTimer()
@@ -132,24 +136,32 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         self.imageView = UIImageView(image: image)
         self.imageView.contentMode = .scaleAspectFit
         self.imageView.clipsToBounds = true
+        imageView.isUserInteractionEnabled = true
         self.addSubview(self.imageView)
         
+        insertSubview(borderView, at: 0)
+        borderView.layer.borderWidth = ZLImageStickerView.borderWidth
+        borderView.layer.borderColor = UIColor.white.cgColor
+        
+        removeButton.frame = .init(origin: .zero, size: buttonSize)
+        removeButton.setImage(getImage("rr_sticker_remove"), for: .normal)
+        removeButton.addTarget(self, action: #selector(onRemoveSticker), for: .touchUpInside)
+        addSubview(removeButton)
+        
+        transformToolView.image = getImage("rr_sticker_transform")
+        transformToolView.isUserInteractionEnabled = true
+        addSubview(transformToolView)
+
+        self.panGes = UIPanGestureRecognizer(target: self, action: #selector(panAction(_:)))
+        imageView.addGestureRecognizer(self.panGes)
+
         self.tapGes = UITapGestureRecognizer(target: self, action: #selector(tapAction(_:)))
-        self.addGestureRecognizer(self.tapGes)
+        imageView.addGestureRecognizer(self.tapGes)
+        
+        let rotationGes = UIPanGestureRecognizer(target: self, action: #selector(rotationAction(_:)))
+        transformToolView.addGestureRecognizer(rotationGes)
         
         self.pinchGes = UIPinchGestureRecognizer(target: self, action: #selector(pinchAction(_:)))
-        self.pinchGes.delegate = self
-        self.addGestureRecognizer(self.pinchGes)
-        
-        let rotationGes = UIRotationGestureRecognizer(target: self, action: #selector(rotationAction(_:)))
-        rotationGes.delegate = self
-        self.addGestureRecognizer(rotationGes)
-        
-        self.panGes = UIPanGestureRecognizer(target: self, action: #selector(panAction(_:)))
-        self.panGes.delegate = self
-        self.addGestureRecognizer(self.panGes)
-        
-        self.tapGes.require(toFail: self.panGes)
     }
     
     required init?(coder: NSCoder) {
@@ -190,7 +202,14 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         }
         
         self.firstLayout = false
-        self.imageView.frame = self.bounds.insetBy(dx: ZLImageStickerView.edgeInset, dy: ZLImageStickerView.edgeInset)
+        
+        borderView.frame = bounds.insetBy(dx: ZLImageStickerView.edgeInset, dy: ZLImageStickerView.edgeInset)
+        imageView.frame = bounds.insetBy(dx: ZLImageStickerView.edgeInset * 2, dy: ZLImageStickerView.edgeInset * 2)
+        transformToolView.frame = CGRect(x: bounds.width - buttonSize.width, y: bounds.height - buttonSize.height, width: buttonSize.width, height: buttonSize.height)
+    }
+    
+    @objc private func onRemoveSticker() {
+        moveToAshbin()
     }
     
     @objc func tapAction(_ ges: UITapGestureRecognizer) {
@@ -216,18 +235,38 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         }
     }
     
-    @objc func rotationAction(_ ges: UIRotationGestureRecognizer) {
+    private var initialBounds = CGRect.zero
+    private var initialDistance: CGFloat = 0
+    private var deltaAngle: CGFloat = 0
+
+    @objc func rotationAction(_ recognizer: UIPanGestureRecognizer) {
         guard self.gesIsEnabled else { return }
         
-        self.gesRotation += ges.rotation
-        ges.rotation = 0
+        let touchLocation = recognizer.location(in: superview)
+        let center = self.center
         
-        if ges.state == .began {
-            self.setOperation(true)
-        } else if ges.state == .changed {
-            self.updateTransform()
-        } else if (ges.state == .ended || ges.state == .cancelled){
-            self.setOperation(false)
+        switch recognizer.state {
+        case .began:
+            deltaAngle = CGFloat(atan2f(Float(touchLocation.y - center.y), Float(touchLocation.x - center.x))) - CGAffineTransformGetAngle(transform)
+            initialBounds = bounds
+            initialDistance = CGPointGetDistance(point1: center, point2: touchLocation)
+            
+            setOperation(true)
+        case .changed:
+            let angle = atan2f(Float(touchLocation.y - center.y), Float(touchLocation.x - center.x))
+            let angleDiff = CGFloat(angle) - deltaAngle
+            gesRotation = angleDiff
+            
+            var scale = CGPointGetDistance(point1: center, point2: touchLocation) / initialDistance
+            let minimumScale = CGFloat(40) / min(initialBounds.size.width, initialBounds.size.height)
+            scale = max(scale, minimumScale)
+            gesScale = scale
+            
+            updateTransform()
+        case .ended:
+            setOperation(false)
+        default:
+            break
         }
     }
     
@@ -262,9 +301,11 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         if isOn, !self.onOperation {
             self.onOperation = true
             self.cleanTimer()
-            self.layer.borderColor = UIColor.white.cgColor
+            borderView.alpha = 1
+            removeButton.alpha = 1
+            transformToolView.alpha = 1
             self.superview?.bringSubviewToFront(self)
-            self.delegate?.stickerBeginOperation(self)
+//            self.delegate?.stickerBeginOperation(self)
         } else if !isOn, self.onOperation {
             self.onOperation = false
             self.startTimer()
@@ -290,17 +331,24 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         transform = transform.rotated(by: self.gesRotation)
         self.transform = transform
         
-        self.delegate?.stickerOnOperation(self, panGes: self.panGes)
+//        self.delegate?.stickerOnOperation(self, panGes: self.panGes)
     }
     
     @objc func hideBorder() {
         self.cleanTimer()
-        self.layer.borderColor = UIColor.clear.cgColor
+        
+        borderView.alpha = 0
+        removeButton.alpha = 0
+        transformToolView.alpha = 0
     }
     
     func startTimer() {
         self.cleanTimer()
-        self.layer.borderColor = UIColor.white.cgColor
+        
+        borderView.alpha = 1
+        removeButton.alpha = 1
+        transformToolView.alpha = 1
+        
         self.timer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(hideBorder), userInfo: nil, repeats: false)
         RunLoop.current.add(self.timer!, forMode: .default)
     }
@@ -367,8 +415,8 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
     }
     
     class func calculateSize(image: UIImage, width: CGFloat) -> CGSize {
-        let maxSide = width / 2
-        let minSide: CGFloat = 100
+        let maxSide = width / 4
+        let minSide: CGFloat = 80
         let whRatio = image.size.width / image.size.height
         var size: CGSize = .zero
         if whRatio >= 1 {
@@ -386,16 +434,6 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
     }
     
 }
-
-
-extension ZLImageStickerView: UIGestureRecognizerDelegate {
-    
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return true
-    }
-    
-}
-
 
 public class ZLImageStickerState: NSObject {
     
@@ -418,4 +456,14 @@ public class ZLImageStickerState: NSObject {
         super.init()
     }
     
+}
+
+@inline(__always) func CGAffineTransformGetAngle(_ t:CGAffineTransform) -> CGFloat {
+    return atan2(t.b, t.a)
+}
+
+@inline(__always) func CGPointGetDistance(point1:CGPoint, point2:CGPoint) -> CGFloat {
+    let fx = point2.x - point1.x
+    let fy = point2.y - point1.y
+    return sqrt(fx * fx + fy * fy)
 }

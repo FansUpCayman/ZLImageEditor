@@ -258,6 +258,7 @@ class ViewController: UIViewController {
         ZLImageEditorConfiguration.default().imageStickerContainerView = ImageStickerContainerView()
         // Custom filter
 //        ZLImageEditorConfiguration.default().filters = [.normal, .apply1977, ZLFilter(name: "Custom", applier: CustomFilter.hazeRemovalFilter)]
+        ZLImageEditorConfiguration.default().editImageClipRatios = [.custom, .wh1x1, .wh2x3, .wh3x2, .wh3x4, .wh4x3, .wh16x9, .wh9x16]
         
         ZLEditImageViewController.showEditImageVC(parentVC: self, image: image, editModel: editModel) { [weak self] (resImage, editModel) in
             self?.resultImageView.image = resImage
