@@ -66,7 +66,7 @@ public class ZLEditImageViewController: UIViewController {
     
     static let ashbinNormalBgColor = zlRGB(40, 40, 40).withAlphaComponent(0.8)
     
-    var animateDismiss = true
+    public var animateDismiss = true
     
     var originalImage: UIImage
     
@@ -202,7 +202,7 @@ public class ZLEditImageViewController: UIViewController {
         }
     }
     
-    @objc init(image: UIImage, editModel: ZLEditImageModel? = nil) {
+    @objc public init(image: UIImage, editModel: ZLEditImageModel? = nil) {
         self.originalImage = image.fixOrientation()
         self.editImage = self.originalImage
         self.editRect = editModel?.editRect ?? CGRect(origin: .zero, size: image.size)
