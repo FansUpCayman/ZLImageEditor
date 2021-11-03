@@ -243,14 +243,13 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
         guard self.gesIsEnabled else { return }
         
         let touchLocation = recognizer.location(in: superview)
-        let center = self.center
+        let center = center.applying(.init(translationX: totalTranslationPoint.x, y: totalTranslationPoint.y))
         
         switch recognizer.state {
         case .began:
             deltaAngle = CGFloat(atan2f(Float(touchLocation.y - center.y), Float(touchLocation.x - center.x))) - CGAffineTransformGetAngle(transform)
-            initialBounds = bounds
-            initialDistance = CGPointGetDistance(point1: center, point2: touchLocation)
-            
+            if 0 == initialDistance { initialDistance = CGPointGetDistance(point1: center, point2: touchLocation) }
+            if .zero == initialBounds { initialBounds = bounds }
             setOperation(true)
         case .changed:
             let angle = atan2f(Float(touchLocation.y - center.y), Float(touchLocation.x - center.x))
@@ -258,15 +257,13 @@ class ZLImageStickerView: UIView, ZLStickerViewAdditional {
             gesRotation = angleDiff
             
             var scale = CGPointGetDistance(point1: center, point2: touchLocation) / initialDistance
-            let minimumScale = CGFloat(40) / min(initialBounds.size.width, initialBounds.size.height)
+            let minimumScale = CGFloat(60) / min(initialBounds.size.width, initialBounds.size.height)
             scale = max(scale, minimumScale)
             gesScale = scale
             
             updateTransform()
-        case .ended:
-            setOperation(false)
         default:
-            break
+            self.setOperation(false)
         }
     }
     
