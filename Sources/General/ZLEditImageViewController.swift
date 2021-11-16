@@ -166,7 +166,7 @@ public class ZLEditImageViewController: UIViewController {
         return self.originalImage.size
     }
     
-    @objc public var editFinishBlock: ( (UIImage, ZLEditImageModel) -> Void )?
+    @objc public var editFinishBlock: ( (UIImage?, ZLEditImageModel?) -> Void )?
     
     public override var prefersStatusBarHidden: Bool {
         return true
@@ -180,7 +180,7 @@ public class ZLEditImageViewController: UIViewController {
         zl_debugPrint("ZLEditImageViewController deinit")
     }
     
-    @objc public class func showEditImageVC(parentVC: UIViewController?, animate: Bool = true, image: UIImage, editModel: ZLEditImageModel? = nil, completion: ( (UIImage, ZLEditImageModel) -> Void )? ) {
+    @objc public class func showEditImageVC(parentVC: UIViewController?, animate: Bool = true, image: UIImage, editModel: ZLEditImageModel? = nil, completion: ( (UIImage?, ZLEditImageModel?) -> Void )? ) {
         let tools = ZLImageEditorConfiguration.default().editImageTools
         if ZLImageEditorConfiguration.default().showClipDirectlyIfOnlyHasClipTool, tools.count == 1, tools.contains(.clip) {
             let vc = ZLClipImageViewController(image: image, editRect: editModel?.editRect, angle: editModel?.angle ?? 0, selectRatio: editModel?.selectRatio)
@@ -628,7 +628,9 @@ public class ZLEditImageViewController: UIViewController {
     }
     
     @objc func cancelBtnClick() {
-        self.dismiss(animated: self.animateDismiss, completion: nil)
+        self.dismiss(animated: self.animateDismiss, completion: { [unowned self] in
+            self.editFinishBlock?(nil, nil)
+        })
     }
     
     func drawBtnClick() {
@@ -748,9 +750,11 @@ public class ZLEditImageViewController: UIViewController {
                 resImage = resImage.compress(to: oriDataSize)
             }
         }
-        self.editFinishBlock?(resImage, editModel)
         
-        self.dismiss(animated: self.animateDismiss, completion: nil)
+        
+        self.dismiss(animated: self.animateDismiss, completion: { [unowned self] in
+            self.editFinishBlock?(resImage, editModel)
+        })
     }
     
     @objc func revokeBtnClick() {
