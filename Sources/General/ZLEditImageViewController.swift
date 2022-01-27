@@ -488,7 +488,7 @@ public class ZLEditImageViewController: UIViewController {
         
         self.doneBtn = UIButton(type: .custom)
         self.doneBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        self.doneBtn.setTitle(localLanguageTextValue(.editFinish), for: .normal)
+        self.doneBtn.setTitle(NSLocalizedString("Next", comment: ""), for: .normal)
         self.doneBtn.addTarget(self, action: #selector(doneBtnClick), for: .touchUpInside)
         self.doneBtn.layer.masksToBounds = true
         self.doneBtn.layer.cornerRadius = ZLImageEditorLayout.bottomToolBtnCornerRadius
@@ -734,6 +734,11 @@ public class ZLEditImageViewController: UIViewController {
             } else if let ts = view as? ZLImageStickerView {
                 imageStickers.append((ts.state, index))
             }
+        }
+
+        if imageStickers.isEmpty {
+          imageStickerBtnClick()
+          return
         }
         
         var hasEdit = true
