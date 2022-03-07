@@ -173,7 +173,7 @@ public class ZLEditImageViewController: UIViewController {
     }
     
     public override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .portrait
+        return [.portrait, .portraitUpsideDown]
     }
     
     deinit {
